@@ -1,52 +1,59 @@
-# OpenAI-Compatible API Proxy
+<div align="center">
 
-<p align="center">
-  <img src="assets/icon.svg" alt="OpenAI-Compatible API Proxy icon" width="112" />
-</p>
+<img src="assets/icon.svg" alt="OpenAI 兼容代理" width="120" />
 
-<p align="center"><strong>Turn any LLM API into an OpenAI-compatible endpoint in minutes.</strong></p>
+### 几分钟内,把任意大模型 API 变成 OpenAI 兼容接口
 
-<p align="center">
-  <a href="README.zh-CN.md">中文文档</a> · <a href="docs/architecture.md">Architecture</a>
-</p>
+为已经依赖 OpenAI SDK 的团队准备的轻量兼容层:不改客户端代码,即可接入私有模型、第三方服务或内部统一出口
 
-![Python](https://img.shields.io/badge/python-3.9%2B-blue)
-![FastAPI](https://img.shields.io/badge/fastapi-ready-009688)
-![OpenAI Compatible](https://img.shields.io/badge/api-openai--compatible-black)
-![Deploy](https://img.shields.io/badge/deploy-docker%20%7C%20systemd-orange)
+[![快速开始](https://img.shields.io/badge/快速开始-本地%20%7C%20Docker-55e5d5?style=flat)](#-快速开始)
+[![部署文档](https://img.shields.io/badge/文档-部署指南-50a6ff?style=flat)](docs/deployment.md)
+[![问题反馈](https://img.shields.io/badge/反馈-Issues-9f86ff?style=flat)](https://github.com/Xplore-LAB/openai-compatible-proxy/issues)
 
-A lightweight compatibility proxy that wraps your upstream model endpoint behind an OpenAI-style `/v1/*` API, so existing SDKs, clients, and workflows can connect with minimal changes.
+[![GitHub stars](https://img.shields.io/github/stars/Xplore-LAB/openai-compatible-proxy?style=flat&label=stars&color=gold)](https://github.com/Xplore-LAB/openai-compatible-proxy/stargazers)
+[![license](https://img.shields.io/badge/license-MIT-1683c4?style=flat)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.9%2B-32b643?style=flat)](requirements.txt)
+[![stack](https://img.shields.io/badge/stack-FastAPI%20%2B%20Docker-7e35d5?style=flat)](Dockerfile)
 
-## Why This Exists
+**简体中文** · [English](README.en.md)
 
-A lot of AI apps already know how to talk to the OpenAI API. The real problem is not calling a model - it is preserving compatibility across SDKs, tools, deployments, and vendor changes.
+</div>
 
-This project helps you:
+---
 
-- keep an OpenAI-style API surface
-- reduce downstream migration cost
-- plug existing tools into a different upstream
-- keep flexibility for private deployment, routing, and cost control
+## ⚡ 一分钟看懂 OpenAI 兼容代理
 
-## Features
+这是一个轻量代理层,把上游模型接口统一暴露为 OpenAI 风格的 `/v1/*` API,让现有 SDK、客户端和工作流系统快速接入。
 
-- Exposes `GET /v1/models`
-- Proxies `GET/POST /v1/{path}` to your upstream
-- Passes through request headers safely
-- Optionally forces `stream=true` for `chat/completions`
-- Supports environment-based configuration
-- Includes Docker, Compose, systemd, and usage examples
+| 你想完成的事 | 交付成果 |
+| --- | --- |
+| 让现有 OpenAI SDK 直接连别的上游 | `/v1/*` 兼容代理,客户端只需改 `base_url` |
+| 给 Open WebUI、Dify、Cherry Studio 接内部模型 | 稳定的 OpenAI 风格端点,自带 Docker、Compose、systemd 部署 |
+| 切换模型供应商但不改下游 | 环境变量配置上游地址与模型列表 |
 
-## Best For
+## 🎯 它解决什么问题
 
-- Wrapping a private or third-party LLM endpoint behind an OpenAI-style API
-- Reusing existing OpenAI SDK integrations without rewriting client code
-- Connecting tools like Open WebUI, Dify, Cherry Studio, or internal apps
-- Building an internal AI gateway with minimal moving parts
+很多 AI 工具已经默认支持 OpenAI API,但你的真实上游可能是别家的模型服务、自建网关,或者内部统一出口。
 
-## Quick Start
+这个项目的价值在于:
 
-### Local Python
+- 不重写现有客户端
+- 不改造现有 OpenAI 集成链路
+- 用一层轻代理完成模型接入兼容
+- 方便后续做切换、治理和控成本
+
+## ✨ 核心能力
+
+- 提供 `GET /v1/models`
+- 转发 `GET/POST /v1/{path}` 到上游
+- 透传大部分请求头,自动移除冲突头
+- 可选强制 `chat/completions` 使用 `stream=true`
+- 支持环境变量配置
+- 自带 Docker、Compose、systemd 和使用示例
+
+## 🚀 快速开始
+
+### 本地运行
 
 ```bash
 cp .env.example .env
@@ -70,41 +77,39 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-## Configuration
+## ⚙️ 核心配置
 
-Main environment variables:
+- `REAL_BASE`:上游 OpenAI-compatible 地址
+- `PROXY_MODELS`:`/v1/models` 返回的模型列表
+- `FORCE_CHAT_STREAM`:是否强制聊天接口流式返回
+- `PROXY_TIMEOUT`:上游超时秒数
+- `PROXY_TITLE`:根路径显示的服务标题
 
-- `REAL_BASE`: upstream OpenAI-compatible base URL
-- `PROXY_MODELS`: comma-separated model ids exposed by `/v1/models`
-- `FORCE_CHAT_STREAM`: force `stream=true` for chat completions
-- `PROXY_TIMEOUT`: upstream timeout in seconds
-- `PROXY_TITLE`: title shown on `/`
+详情见 `.env.example`。
 
-See `.env.example` for defaults.
-
-## API
+## 🔌 API
 
 ### `GET /`
 
-Returns basic metadata about the proxy.
+返回代理的基础元信息。
 
 ### `GET /healthz`
 
-Returns a simple health check payload.
+返回简单的健康检查响应。
 
 ### `GET /v1/models`
 
-Returns a model list based on `PROXY_MODELS`.
+按 `PROXY_MODELS` 返回模型列表。
 
 ### `GET/POST /v1/{path}`
 
-Forwards requests to:
+将请求转发到:
 
 ```text
 {REAL_BASE}/{path}
 ```
 
-## Usage Examples
+## 🧪 使用示例
 
 ### cURL
 
@@ -122,26 +127,24 @@ curl http://127.0.0.1:9000/v1/chat/completions \
   }'
 ```
 
-### Compatible Tools
-
-This pattern is useful when connecting tools that already expect OpenAI-compatible APIs, such as:
+### 适合接什么
 
 - OpenAI Python SDK
 - OpenAI Node SDK
 - Cherry Studio
 - Open WebUI
 - Dify
-- Any app that accepts `base_url` / `api_base`
+- 任何支持 `base_url` / `api_base` 的客户端
 
-## Architecture
+## 🏗 架构说明
 
 <p align="center">
-  <img src="assets/banner.svg" alt="Architecture banner" width="100%" />
+  <img src="assets/banner.svg" alt="架构横幅" width="100%" />
 </p>
 
-See `docs/architecture.md` for the simplified request flow and positioning.
+可在 [docs/architecture.md](docs/architecture.md) 查看简化后的请求链路和定位说明。
 
-## Project Structure
+## 🗂 项目结构
 
 ```text
 .
@@ -164,36 +167,37 @@ See `docs/architecture.md` for the simplified request flow and positioning.
     └── dify/
 ```
 
-## Docs
+## 📚 文档导航
 
-- `docs/compatibility.md`
-- `docs/deployment.md`
-- `docs/faq.md`
-- `docs/troubleshooting.md`
-- `README.zh-CN.md`
+- [docs/architecture.md](docs/architecture.md):架构与请求链路
+- [docs/compatibility.md](docs/compatibility.md):兼容性说明
+- [docs/deployment.md](docs/deployment.md):部署指南
+- [docs/faq.md](docs/faq.md):常见问题
+- [docs/troubleshooting.md](docs/troubleshooting.md):排障手册
+- [English README](README.en.md)
 
-## Use Cases
+## 💡 适用场景
 
-- Wrap a non-OpenAI upstream behind a familiar API
-- Switch model vendors without changing downstream clients
-- Add a thin compatibility layer for internal AI tools
-- Provide one stable endpoint to multiple teams or apps
+- 把非 OpenAI 上游包装成统一接口
+- 给多个内部工具提供稳定的模型出口
+- 在不改客户端的情况下切换模型供应商
+- 做私有部署、统一网关或模型中转
 
-## Who Should Use This
+## 👤 谁适合用
 
-- Developers who already rely on OpenAI SDKs
-- Teams migrating away from a single model vendor
-- Builders who want a simple compatibility layer before adopting a full AI gateway
-- Anyone who needs a stable API surface for tools, automations, or internal platforms
+- 已经依赖 OpenAI SDK 的开发者
+- 想摆脱单一模型供应商绑定的团队
+- 想先上兼容层、后面再演进到完整 AI 网关的项目
+- 需要给工具、自动化和内部平台提供稳定 API 的团队
 
-## Roadmap
+## 🗺 路线图
 
-See `ROADMAP.md`.
+见 [ROADMAP.md](ROADMAP.md)。
 
-## Changelog
+## 📝 更新记录
 
-See `CHANGELOG.md`.
+见 [CHANGELOG.md](CHANGELOG.md)。
 
-## License
+## 📄 许可证
 
-MIT
+[MIT](LICENSE)
